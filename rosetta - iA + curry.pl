@@ -24,6 +24,8 @@ sub run {
 
     $self->do(2);
     $self->loop->run;
+
+    return;
 }
 
 sub do {
@@ -38,16 +40,7 @@ sub do {
             )
         )
     );
-}
-
-sub get_object_name {
-    my ( $self, $id, $cb ) = @_;
-    $self->call_external_api( "get_object_name", "name $id", $cb );
-}
-
-sub delete_object {
-    my ( $self, $cb_succ, $cb_fail, $name ) = @_;
-    $self->call_external_api( "delete_object", $name, $cb_succ, $cb_fail );
+    return;
 }
 
 sub finalize {
@@ -59,11 +52,25 @@ sub finalize {
             $self->loop->stop;
         }
     );
+    return;
+}
+
+sub get_object_name {
+    my ( $self, $id, $cb ) = @_;
+    $self->call_external_api( "get_object_name", "name $id", $cb );
+    return;
+}
+
+sub delete_object {
+    my ( $self, $cb_succ, $cb_fail, $name ) = @_;
+    $self->call_external_api( "delete_object", $name, $cb_succ, $cb_fail );
+    return;
 }
 
 sub log_to_db {
     my ( $self, $msg, $cb ) = @_;
     $self->call_internal_api( "log_to_db", $msg, $cb );
+    return;
 }
 
 sub call_external_api {
@@ -72,10 +79,12 @@ sub call_external_api {
     my $cb =
       ( $call eq "delete_object" and $arg eq "name 2" ) ? $cb_fail : $cb_succ;
     $self->loop->watch_time( after => 1, code => sub { $cb->($arg) } );
+    return;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
     $self->loop->watch_time( after => 1, code => sub { $cb->($arg) } );
+    return;
 }

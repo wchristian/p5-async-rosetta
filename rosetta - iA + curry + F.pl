@@ -21,11 +21,13 @@ sub run {
 
     $self->do(1)->get;
     $self->do(2)->get;
+
+    return;
 }
 
 sub do {
     my ( $self, $id ) = @_;
-    $self->log_to_db("start")                              #
+    return $self->log_to_db("start")                       #
       ->then( $self->curry::get_object_name($id) )
       ->then( $self->curry::delete_object )->then(
         $self->curry::log_to_db("success"),
@@ -34,19 +36,9 @@ sub do {
       ->then( $self->curry::finalize );
 }
 
-sub get_object_name {
-    my ( $self, $id ) = @_;
-    $self->call_external_api( "get_object_name", "name $id" );
-}
-
-sub delete_object {
-    my ( $self, $name ) = @_;
-    $self->call_external_api( "delete_object", $name );
-}
-
 sub finalize {
     my ( $self, $msg ) = @_;
-    $self->log_to_db("done")    #
+    return $self->log_to_db("done")                        #
       ->then(
         sub {
             say "end";
@@ -55,9 +47,19 @@ sub finalize {
       );
 }
 
+sub get_object_name {
+    my ( $self, $id ) = @_;
+    return $self->call_external_api( "get_object_name", "name $id" );
+}
+
+sub delete_object {
+    my ( $self, $name ) = @_;
+    return $self->call_external_api( "delete_object", $name );
+}
+
 sub log_to_db {
     my ( $self, $msg ) = @_;
-    $self->call_internal_api( "log_to_db", $msg );
+    return $self->call_internal_api( "log_to_db", $msg );
 }
 
 sub call_external_api {
