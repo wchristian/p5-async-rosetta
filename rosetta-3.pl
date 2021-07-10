@@ -46,7 +46,13 @@ sub delete_object {
 
 sub finalize {
     my ( $self, $msg ) = @_;
-    $self->log_to_db("done")->then( sub { say "end"; $self->loop->stop } );
+    $self->log_to_db("done")    #
+      ->then(
+        sub {
+            say "end";
+            $self->loop->stop;
+        }
+      );
 }
 
 sub log_to_db {
