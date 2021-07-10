@@ -12,6 +12,13 @@ has loop => is => ro => default => IO::Async::Loop->curry::new;
 
 await __PACKAGE__->new->run;
 
+sub delay {
+    my ( $self, $meth, $arg ) = @_;
+    my $future = $self->loop->new_future;
+    $self->loop->watch_time( after => 1, code => $future->$meth($arg) );
+    return $future;
+}
+
 async sub run {
     my ($self) = @_;
 
@@ -67,15 +74,11 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => $future->curry::done($arg) );
-    return $future;
+    return $self->delay( done => $arg );
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => $future->curry::done($arg) );
-    return $future;
+    return $self->delay( done => $arg );
 }

@@ -3,16 +3,22 @@ use strictures;
 
 use Moo;
 
-use IO::Async::Timer::Periodic;
-use IO::Async::Loop;
+use AnyEvent;
 
-has loop => is => ro => default => sub { IO::Async::Loop->new };
+has cv => is => "rw";
 
 __PACKAGE__->new->run;
 
 sub delay {
-    my ( $self, $cb ) = @_;
-    $self->loop->watch_time( after => 1, code => $cb );
+    my ($cb) = @_;
+    my $w;
+    $w = AnyEvent->timer(
+        after => 1 => cb => sub {
+            undef $w;
+            $cb->();
+            return;
+        }
+    );
     return;
 }
 
@@ -21,14 +27,14 @@ sub run {
 
     $|++;
 
-    $self->loop->add($_) for IO::Async::Timer::Periodic    #
-      ->new( interval => 0.25, on_tick => sub { print "." } )->start;
+    my $w = AnyEvent    #
+      ->timer( after => 0.1, interval => 0.25, cb => sub { print "." } );
 
     $self->do(1);
-    $self->loop->run;
+    $self->cv( AnyEvent->condvar )->recv;
 
     $self->do(2);
-    $self->loop->run;
+    $self->cv( AnyEvent->condvar )->recv;
 
     return;
 }
@@ -79,8 +85,7 @@ sub finalize {
         "done",
         sub {
             say "end";
-            $self->loop->stop;
-            return;
+            $self->cv->send;
         }
     );
     return;
@@ -109,23 +114,19 @@ sub call_external_api {
     say "$call, $arg";
     my $cb =
       ( $call eq "delete_object" and $arg eq "name 2" ) ? $cb_fail : $cb_succ;
-    $self->delay(
-        sub {
-            $cb->($arg);
-            return;
-        }
-    );
+    delay sub {
+        $cb->($arg);
+        return;
+    };
     return;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
-    $self->delay(
-        sub {
-            $cb->($arg);
-            return;
-        }
-    );
+    delay sub {
+        $cb->($arg);
+        return;
+    };
     return;
 }
