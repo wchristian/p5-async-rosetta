@@ -118,7 +118,7 @@ sub call_external_api {
     else {
         $cb = $cb_succ;
     }
-    delay(
+    $self->delay(
         sub {
             $cb->($arg);
             return;
@@ -130,7 +130,7 @@ sub call_external_api {
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
-    delay(
+    $self->delay(
         sub {
             $cb->($arg);
             return;
@@ -140,7 +140,7 @@ sub call_internal_api {
 }
 
 sub delay {
-    my ($cb) = @_;
+    my ( $self, $cb ) = @_;
     my $w;
     $w = AnyEvent->timer(
         after => 0.4 => cb => sub {

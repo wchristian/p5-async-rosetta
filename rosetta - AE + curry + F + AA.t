@@ -76,17 +76,17 @@ async sub finalize {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return delay( done => $arg );
+    return $self->delay( done => $arg );
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return delay( done => $arg );
+    return $self->delay( done => $arg );
 }
 
 sub delay {
-    my ( $meth, $arg ) = @_;
+    my ( $self, $meth, $arg ) = @_;
     my $f = AnyEvent::Future->new;
     my $w;
     $w = AnyEvent->timer(
