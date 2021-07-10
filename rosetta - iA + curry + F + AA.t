@@ -14,20 +14,6 @@ has loop  => is => ro => default => IO::Async::Loop->curry::new;
 
 await __PACKAGE__->new->run;
 
-sub inc {
-    my ($self) = @_;
-    $self->count( $self->count + 1 );
-    return;
-}
-
-sub delay {
-    my ( $self, $meth, $arg ) = @_;
-    my $future = $self->loop->new_future;
-    $meth = "curry::$meth";
-    $self->loop->watch_time( after => 0.4, code => $future->$meth($arg) );
-    return $future;
-}
-
 async sub run {
     my ($self) = @_;
 
@@ -59,12 +45,15 @@ async sub do {
     return;
 }
 
-async sub finalize {
-    my ( $self, $msg ) = @_;
-    await $self->log_to_db("done");
-    say "end";
-    $self->inc;
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
     return;
+}
+
+sub log_to_db {
+    my ( $self, $msg ) = @_;
+    return $self->call_internal_api( "log_to_db", $msg );
 }
 
 sub get_object_name {
@@ -77,9 +66,12 @@ sub delete_object {
     return $self->call_external_api( "delete_object", $name );
 }
 
-sub log_to_db {
+async sub finalize {
     my ( $self, $msg ) = @_;
-    return $self->call_internal_api( "log_to_db", $msg );
+    await $self->log_to_db("done");
+    say "end";
+    $self->inc;
+    return;
 }
 
 sub call_external_api {
@@ -92,4 +84,12 @@ sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
     return $self->delay( done => $arg );
+}
+
+sub delay {
+    my ( $self, $meth, $arg ) = @_;
+    my $future = $self->loop->new_future;
+    $meth = "curry::$meth";
+    $self->loop->watch_time( after => 0.4, code => $future->$meth($arg) );
+    return $future;
 }

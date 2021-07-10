@@ -12,25 +12,6 @@ has cv    => is => "rw";
 
 __PACKAGE__->new->run;
 
-sub inc {
-    my ($self) = @_;
-    $self->count( $self->count + 1 );
-    return;
-}
-
-sub delay {
-    my ($cb) = @_;
-    my $w;
-    $w = AnyEvent->timer(
-        after => 0.4 => cb => sub {
-            undef $w;
-            $cb->();
-            return;
-        }
-    );
-    return;
-}
-
 sub run {
     my ($self) = @_;
 
@@ -65,17 +46,15 @@ sub do {
     return;
 }
 
-sub finalize {
-    my ( $self, $msg ) = @_;
-    $self->log_to_db(
-        "done",
-        sub {
-            say "end";
-            $self->cv->send;
-            $self->inc;
-            return;
-        }
-    );
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
+
+sub log_to_db {
+    my ( $self, $msg, $cb ) = @_;
+    $self->call_internal_api( "log_to_db", $msg, $cb );
     return;
 }
 
@@ -91,9 +70,17 @@ sub delete_object {
     return;
 }
 
-sub log_to_db {
-    my ( $self, $msg, $cb ) = @_;
-    $self->call_internal_api( "log_to_db", $msg, $cb );
+sub finalize {
+    my ( $self, $msg ) = @_;
+    $self->log_to_db(
+        "done",
+        sub {
+            say "end";
+            $self->cv->send;
+            $self->inc;
+            return;
+        }
+    );
     return;
 }
 
@@ -107,19 +94,36 @@ sub call_external_api {
     else {
         $cb = $cb_succ;
     }
-    delay sub {
-        $cb->($arg);
-        return;
-    };
+    delay(
+        sub {
+            $cb->($arg);
+            return;
+        }
+    );
     return;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
-    delay sub {
-        $cb->($arg);
-        return;
-    };
+    delay(
+        sub {
+            $cb->($arg);
+            return;
+        }
+    );
+    return;
+}
+
+sub delay {
+    my ($cb) = @_;
+    my $w;
+    $w = AnyEvent->timer(
+        after => 0.4 => cb => sub {
+            undef $w;
+            $cb->();
+            return;
+        }
+    );
     return;
 }

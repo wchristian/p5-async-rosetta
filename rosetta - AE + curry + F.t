@@ -12,26 +12,6 @@ has count => is => rw => default => 0;
 
 __PACKAGE__->new->run;
 
-sub inc {
-    my ($self) = @_;
-    $self->count( $self->count + 1 );
-    return;
-}
-
-sub delay {
-    my ( $meth, $arg ) = @_;
-    my $f = AnyEvent::Future->new;
-    my $w;
-    $w = AnyEvent->timer(
-        after => 0.4 => cb => sub {
-            undef $w;
-            $f->$meth($arg);
-            return;
-        }
-    );
-    return $f;
-}
-
 sub run {
     my ($self) = @_;
 
@@ -58,16 +38,15 @@ sub do {
       ->then( $self->curry::finalize );
 }
 
-sub finalize {
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
+
+sub log_to_db {
     my ( $self, $msg ) = @_;
-    return $self->log_to_db("done")            #
-      ->then(
-        sub {
-            say "end";
-            $self->inc;
-            return;
-        }
-      );
+    return $self->call_internal_api( "log_to_db", $msg );
 }
 
 sub get_object_name {
@@ -80,9 +59,16 @@ sub delete_object {
     return $self->call_external_api( "delete_object", $name );
 }
 
-sub log_to_db {
+sub finalize {
     my ( $self, $msg ) = @_;
-    return $self->call_internal_api( "log_to_db", $msg );
+    return $self->log_to_db("done")    #
+      ->then(
+        sub {
+            say "end";
+            $self->inc;
+            return;
+        }
+      );
 }
 
 sub call_external_api {
@@ -95,11 +81,25 @@ sub call_external_api {
     else {
         $meth = "done";
     }
-    return delay $meth => $arg;
+    return delay( $meth => $arg );
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return delay done => $arg;
+    return delay( done => $arg );
+}
+
+sub delay {
+    my ( $meth, $arg ) = @_;
+    my $f = AnyEvent::Future->new;
+    my $w;
+    $w = AnyEvent->timer(
+        after => 0.4 => cb => sub {
+            undef $w;
+            $f->$meth($arg);
+            return;
+        }
+    );
+    return $f;
 }
