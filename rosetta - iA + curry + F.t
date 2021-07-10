@@ -3,18 +3,27 @@ use strictures;
 
 use Moo;
 
+use Test::More;
 use IO::Async::Timer::Periodic;
 use IO::Async::Loop;
 use curry;
 
-has loop => is => ro => default => IO::Async::Loop->curry::new;
+has count => is => rw => default => 0;
+has loop  => is => ro => default => IO::Async::Loop->curry::new;
 
 __PACKAGE__->new->run;
+
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
 
 sub delay {
     my ( $self, $meth, $arg ) = @_;
     my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => $future->$meth($arg) );
+    $meth = "curry::$meth";
+    $self->loop->watch_time( after => 0.4, code => $future->$meth($arg) );
     return $future;
 }
 
@@ -24,32 +33,33 @@ sub run {
     $|++;
 
     $self->loop->add($_) for IO::Async::Timer::Periodic    #
-      ->new( interval => 0.25, on_tick => sub { print "." } )->start;
+      ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;
 
     $self->do(1)->get;
     $self->do(2)->get;
 
+    is $self->count, $_, "had $_ events tracked" for 42;
+    done_testing;
     return;
 }
 
 sub do {
     my ( $self, $id ) = @_;
-    return $self->log_to_db("start")                       #
+    return $self->log_to_db("start")    #
       ->then( $self->curry::get_object_name($id) )
-      ->then( $self->curry::delete_object )->then(
-        $self->curry::log_to_db("success"),
-        $self->curry::log_to_db("failure"),
-      )                                                    #
+      ->then( $self->curry::delete_object )    #
+      ->then                                   #
+      ( $self->curry::log_to_db("success"), $self->curry::log_to_db("failure") )
       ->then( $self->curry::finalize );
 }
 
 sub finalize {
     my ( $self, $msg ) = @_;
-    return $self->log_to_db("done")                        #
+    return $self->log_to_db("done")            #
       ->then(
         sub {
             say "end";
-            $self->loop->stop;
+            $self->inc;
             return;
         }
       );
@@ -73,8 +83,13 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    my $meth = "curry::"
-      . ( ( $call eq "delete_object" and $arg eq "name 2" ) ? "fail" : "done" );
+    my $meth;
+    if ( $call eq "delete_object" and $arg eq "name 2" ) {
+        $meth = "fail";
+    }
+    else {
+        $meth = "done";
+    }
     return $self->delay( $meth => $arg );
 }
 

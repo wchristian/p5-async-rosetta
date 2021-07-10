@@ -1,22 +1,36 @@
-use v5.14;
+use 5.010;
 use strictures;
 
 use Moo;
 
-use IO::Async::Timer::Periodic;
-use IO::Async::Loop;
+use Test::More;
+use AnyEvent;
 use curry;
+use AnyEvent::Future;
 use Future::AsyncAwait;
 
-has loop => is => ro => default => IO::Async::Loop->curry::new;
+has count => is => rw => default => 0;
 
 await __PACKAGE__->new->run;
 
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
+
 sub delay {
-    my ( $self, $meth, $arg ) = @_;
-    my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => $future->$meth($arg) );
-    return $future;
+    my ( $meth, $arg ) = @_;
+    my $f = AnyEvent::Future->new;
+    my $w;
+    $w = AnyEvent->timer(
+        after => 0.4 => cb => sub {
+            undef $w;
+            $f->$meth($arg);
+            return;
+        }
+    );
+    return $f;
 }
 
 async sub run {
@@ -24,12 +38,14 @@ async sub run {
 
     $|++;
 
-    $self->loop->add($_) for IO::Async::Timer::Periodic    #
-      ->new( interval => 0.25, on_tick => sub { print "." } )->start;
+    my $w = AnyEvent->timer    #
+      ( after => 0.08, interval => 0.1, cb => sub { print "."; $self->inc } );
 
     await $self->do(1);
     await $self->do(2);
 
+    is $self->count, $_, "had $_ events tracked" for 42;
+    done_testing;
     return;
 }
 
@@ -52,7 +68,7 @@ async sub finalize {
     my ( $self, $msg ) = @_;
     await $self->log_to_db("done");
     say "end";
-    $self->loop->stop;
+    $self->inc;
     return;
 }
 
@@ -74,11 +90,11 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return $self->delay( done => $arg );
+    return delay done => $arg;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return $self->delay( done => $arg );
+    return delay done => $arg;
 }

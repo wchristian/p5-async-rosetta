@@ -3,16 +3,30 @@ use strictures;
 
 use Moo;
 
-use IO::Async::Timer::Periodic;
-use IO::Async::Loop;
+use Test::More;
+use AnyEvent;
 
-has loop => is => ro => default => sub { IO::Async::Loop->new };
+has count => is => rw => default => 0;
+has cv    => is => "rw";
 
 __PACKAGE__->new->run;
 
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
+
 sub delay {
-    my ( $self, $cb ) = @_;
-    $self->loop->watch_time( after => 1, code => $cb );
+    my ($cb) = @_;
+    my $w;
+    $w = AnyEvent->timer(
+        after => 0.4 => cb => sub {
+            undef $w;
+            $cb->();
+            return;
+        }
+    );
     return;
 }
 
@@ -21,15 +35,17 @@ sub run {
 
     $|++;
 
-    $self->loop->add($_) for IO::Async::Timer::Periodic    #
-      ->new( interval => 0.25, on_tick => sub { print "." } )->start;
+    my $w = AnyEvent->timer    #
+      ( after => 0.08, interval => 0.1, cb => sub { print "."; $self->inc } );
 
     $self->do(1);
-    $self->loop->run;
+    $self->cv( AnyEvent->condvar )->recv;
 
     $self->do(2);
-    $self->loop->run;
+    $self->cv( AnyEvent->condvar )->recv;
 
+    is $self->count, $_, "had $_ events tracked" for 42;
+    done_testing;
     return;
 }
 
@@ -79,7 +95,8 @@ sub finalize {
         "done",
         sub {
             say "end";
-            $self->loop->stop;
+            $self->cv->send;
+            $self->inc;
             return;
         }
     );
@@ -107,25 +124,26 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg, $cb_succ, $cb_fail ) = @_;
     say "$call, $arg";
-    my $cb =
-      ( $call eq "delete_object" and $arg eq "name 2" ) ? $cb_fail : $cb_succ;
-    $self->delay(
-        sub {
-            $cb->($arg);
-            return;
-        }
-    );
+    my $cb;
+    if ( $call eq "delete_object" and $arg eq "name 2" ) {
+        $cb = $cb_fail;
+    }
+    else {
+        $cb = $cb_succ;
+    }
+    delay sub {
+        $cb->($arg);
+        return;
+    };
     return;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
-    $self->delay(
-        sub {
-            $cb->($arg);
-            return;
-        }
-    );
+    delay sub {
+        $cb->($arg);
+        return;
+    };
     return;
 }

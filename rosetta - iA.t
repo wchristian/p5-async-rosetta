@@ -3,22 +3,24 @@ use strictures;
 
 use Moo;
 
-use AnyEvent;
+use Test::More;
+use IO::Async::Timer::Periodic;
+use IO::Async::Loop;
 
-has cv => is => "rw";
+has count => is => rw => default => 0;
+has loop  => is => ro => default => sub { IO::Async::Loop->new };
 
 __PACKAGE__->new->run;
 
+sub inc {
+    my ($self) = @_;
+    $self->count( $self->count + 1 );
+    return;
+}
+
 sub delay {
-    my ($cb) = @_;
-    my $w;
-    $w = AnyEvent->timer(
-        after => 1 => cb => sub {
-            undef $w;
-            $cb->();
-            return;
-        }
-    );
+    my ( $self, $cb ) = @_;
+    $self->loop->watch_time( after => 0.4, code => $cb );
     return;
 }
 
@@ -27,15 +29,17 @@ sub run {
 
     $|++;
 
-    my $w = AnyEvent    #
-      ->timer( after => 0.1, interval => 0.25, cb => sub { print "." } );
+    $self->loop->add($_) for IO::Async::Timer::Periodic    #
+      ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;
 
     $self->do(1);
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->loop->run;
 
     $self->do(2);
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->loop->run;
 
+    is $self->count, $_, "had $_ events tracked" for 42;
+    done_testing;
     return;
 }
 
@@ -85,7 +89,9 @@ sub finalize {
         "done",
         sub {
             say "end";
-            $self->cv->send;
+            $self->loop->stop;
+            $self->inc;
+            return;
         }
     );
     return;
@@ -112,21 +118,30 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg, $cb_succ, $cb_fail ) = @_;
     say "$call, $arg";
-    my $cb =
-      ( $call eq "delete_object" and $arg eq "name 2" ) ? $cb_fail : $cb_succ;
-    delay sub {
-        $cb->($arg);
-        return;
-    };
+    my $cb;
+    if ( $call eq "delete_object" and $arg eq "name 2" ) {
+        $cb = $cb_fail;
+    }
+    else {
+        $cb = $cb_succ;
+    }
+    $self->delay(
+        sub {
+            $cb->($arg);
+            return;
+        }
+    );
     return;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg, $cb ) = @_;
     say "$call, $arg";
-    delay sub {
-        $cb->($arg);
-        return;
-    };
+    $self->delay(
+        sub {
+            $cb->($arg);
+            return;
+        }
+    );
     return;
 }
