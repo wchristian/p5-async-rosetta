@@ -7,7 +7,7 @@ use IO::Async::Timer::Periodic;
 use IO::Async::Loop;
 use curry;
 
-has loop => is => ro => default => sub { IO::Async::Loop->new };
+has loop => is => ro => default => IO::Async::Loop->curry::new;
 
 __PACKAGE__->new->run;
 

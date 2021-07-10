@@ -7,7 +7,7 @@ use IO::Async::Timer::Periodic;
 use IO::Async::Loop;
 use curry;
 
-has loop => is => ro => default => sub { IO::Async::Loop->new };
+has loop => is => ro => default => IO::Async::Loop->curry::new;
 
 __PACKAGE__->new->run;
 
@@ -63,10 +63,10 @@ sub log_to_db {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    my $meth =
-      ( $call eq "delete_object" and $arg eq "name 2" ) ? "fail" : "done";
+    my $meth = "curry::"
+      . ( ( $call eq "delete_object" and $arg eq "name 2" ) ? "fail" : "done" );
     my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => sub { $future->$meth($arg) } );
+    $self->loop->watch_time( after => 1, code => $future->$meth($arg) );
     return $future;
 }
 
@@ -74,6 +74,6 @@ sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
     my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => sub { $future->done($arg) } );
+    $self->loop->watch_time( after => 1, code => $future->curry::done($arg) );
     return $future;
 }

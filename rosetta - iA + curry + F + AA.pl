@@ -8,7 +8,7 @@ use IO::Async::Loop;
 use curry;
 use Future::AsyncAwait;
 
-has loop => is => ro => default => sub { IO::Async::Loop->new };
+has loop => is => ro => default => IO::Async::Loop->curry::new;
 
 __PACKAGE__->new->run;
 
@@ -64,7 +64,7 @@ sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
     my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => sub { $future->done($arg) } );
+    $self->loop->watch_time( after => 1, code => $future->curry::done($arg) );
     return $future;
 }
 
@@ -72,6 +72,6 @@ sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
     my $future = $self->loop->new_future;
-    $self->loop->watch_time( after => 1, code => sub { $future->done($arg) } );
+    $self->loop->watch_time( after => 1, code => $future->curry::done($arg) );
     return $future;
 }
