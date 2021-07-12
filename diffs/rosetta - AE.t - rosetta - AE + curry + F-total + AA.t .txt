@@ -46,7 +46,7 @@
 *  40|                $id,                                                              *  39|        await $self->log_to_db("success");                                        *
 *  41|                sub {                                                             *  40|    };                                                                            *
 *  42|                    my ($name) = @_;                                              *  41|    await $self->log_to_db("failure") if $@;                                      *
-*  43|\r\n                                                                              *  42|    await $self->finalize;\r\n                                                    *
+*  43|\n                                                                                *  42|    await $self->finalize;\n                                                      *
 *  44|                    $self->delete_object(                                         *    |                                                                                  |
 *  45|                        $name,                                                    *    |                                                                                  |
 *  46|                        sub {                                                     *    |                                                                                  |

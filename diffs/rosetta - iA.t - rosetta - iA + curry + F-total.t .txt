@@ -43,7 +43,7 @@
 *  39|                $id,                                                              *  39|        $self->curry::log_to_db("success"),                                       *
 *  40|                sub {                                                             *  40|        $self->curry::log_to_db("failure"),                                       *
 *  41|                    my ($name) = @_;                                              *  41|      )                                        #                                  *
-*  42|\r\n                                                                              *  42|      ->then( $self->curry::finalize );\r\n                                       *
+*  42|\n                                                                                *  42|      ->then( $self->curry::finalize );\n                                         *
 *  43|                    $self->delete_object(                                         *    |                                                                                  |
 *  44|                        $name,                                                    *    |                                                                                  |
 *  45|                        sub {                                                     *    |                                                                                  |

@@ -44,7 +44,7 @@
 *  39|                $id,                                                              *  39|        await $self->log_to_db("success");                                        *
 *  40|                sub {                                                             *  40|    };                                                                            *
 *  41|                    my ($name) = @_;                                              *  41|    await $self->log_to_db("failure") if $@;                                      *
-*  42|\r\n                                                                              *  42|    await $self->finalize;\r\n                                                    *
+*  42|\n                                                                                *  42|    await $self->finalize;\n                                                      *
 *  43|                    $self->delete_object(                                         *    |                                                                                  |
 *  44|                        $name,                                                    *    |                                                                                  |
 *  45|                        sub {                                                     *    |                                                                                  |
@@ -150,7 +150,7 @@
 * 144|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 100|    _timer( after => 0.4, cb => $cb );                                            *
 |    |                                                                                  * 101|    return;                                                                       *
 |    |                                                                                  * 102|}                                                                                 *
-|    |                                                                                  * 103|\r\n                                                                              *
+|    |                                                                                  * 103|\n                                                                                *
 |    |                                                                                  * 104|sub _timer {                                                                      *
 |    |                                                                                  * 105|    my $cb = pop;                                                                 *
 |    |                                                                                  * 106|    my $w;                                                                        *

@@ -131,28 +131,28 @@
 | 128|    );                                                                            | 115|    );                                                                            |
 | 129|    return;                                                                       | 116|    return;                                                                       |
 * 130|}                                                                                 *    |                                                                                  |
-* 131|\r\n                                                                              *    |                                                                                  |
+* 131|\n                                                                                *    |                                                                                  |
 * 132|sub log_to_db_f {                                                                 *    |                                                                                  |
 * 133|    my ( $self, $msg ) = @_;                                                      *    |                                                                                  |
 * 134|    my $future = AnyEvent::Future->new;                                           *    |                                                                                  |
 * 135|    $self->log_to_db( $msg, $future->curry::done );                               *    |                                                                                  |
 * 136|    return $future;                                                               *    |                                                                                  |
 * 137|}                                                                                 *    |                                                                                  |
-* 138|\r\n                                                                              *    |                                                                                  |
+* 138|\n                                                                                *    |                                                                                  |
 * 139|sub get_object_name_f {                                                           *    |                                                                                  |
 * 140|    my ( $self, $id ) = @_;                                                       *    |                                                                                  |
 * 141|    my $future = AnyEvent::Future->new;                                           *    |                                                                                  |
 * 142|    $self->get_object_name( $id, $future->curry::done );                          *    |                                                                                  |
 * 143|    return $future;                                                               *    |                                                                                  |
 * 144|}                                                                                 *    |                                                                                  |
-* 145|\r\n                                                                              *    |                                                                                  |
+* 145|\n                                                                                *    |                                                                                  |
 * 146|sub delete_object_f {                                                             *    |                                                                                  |
 * 147|    my ( $self, $name ) = @_;                                                     *    |                                                                                  |
 * 148|    my $future = AnyEvent::Future->new;                                           *    |                                                                                  |
 * 149|    $self->delete_object( $future->curry::done, $future->curry::fail, $name );    *    |                                                                                  |
 * 150|    return $future;                                                               *    |                                                                                  |
 * 151|}                                                                                 *    |                                                                                  |
-* 152|\r\n                                                                              *    |                                                                                  |
+* 152|\n                                                                                *    |                                                                                  |
 * 153|sub finalize_f {                                                                  *    |                                                                                  |
 * 154|    my ($self) = @_;                                                              *    |                                                                                  |
 * 155|    my $future = AnyEvent::Future->new;                                           *    |                                                                                  |

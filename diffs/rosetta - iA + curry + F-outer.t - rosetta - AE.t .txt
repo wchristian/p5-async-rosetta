@@ -44,7 +44,7 @@
 *  38|        $self->curry::log_to_db_f("success"),                                     *  40|                $id,                                                              *
 *  39|        $self->curry::log_to_db_f("failure"),                                     *  41|                sub {                                                             *
 *  40|      )                                          #                                *  42|                    my ($name) = @_;                                              *
-*  41|      ->then( $self->curry::finalize_f );\r\n                                     *  43|\r\n                                                                              *
+*  41|      ->then( $self->curry::finalize_f );\n                                       *  43|\n                                                                                *
 |    |                                                                                  *  44|                    $self->delete_object(                                         *
 |    |                                                                                  *  45|                        $name,                                                    *
 |    |                                                                                  *  46|                        sub {                                                     *
@@ -156,21 +156,21 @@
 * 122|    $self->log_to_db( $msg, $future->curry::done );                               * 152|    $w = AnyEvent->timer(                                                         *
 * 123|    return $future;                                                               * 153|        @_ => sub {                                                               *
 * 124|}                                                                                 * 154|            undef $w;                                                             *
-* 125|\r\n                                                                              * 155|            $cb->();\r\n                                                          *
+* 125|\n                                                                                * 155|            $cb->();\n                                                            *
 * 126|sub get_object_name_f {                                                           * 156|            return;                                                               *
 * 127|    my ( $self, $id ) = @_;                                                       * 157|        }                                                                         *
 * 128|    my $future = $self->loop->new_future;                                         * 158|    );                                                                            *
 * 129|    $self->get_object_name( $id, $future->curry::done );                          * 159|    return;                                                                       *
 * 130|    return $future;                                                               *    |                                                                                  |
 * 131|}                                                                                 *    |                                                                                  |
-* 132|\r\n                                                                              *    |                                                                                  |
+* 132|\n                                                                                *    |                                                                                  |
 * 133|sub delete_object_f {                                                             *    |                                                                                  |
 * 134|    my ( $self, $name ) = @_;                                                     *    |                                                                                  |
 * 135|    my $future = $self->loop->new_future;                                         *    |                                                                                  |
 * 136|    $self->delete_object( $future->curry::done, $future->curry::fail, $name );    *    |                                                                                  |
 * 137|    return $future;                                                               *    |                                                                                  |
 * 138|}                                                                                 *    |                                                                                  |
-* 139|\r\n                                                                              *    |                                                                                  |
+* 139|\n                                                                                *    |                                                                                  |
 * 140|sub finalize_f {                                                                  *    |                                                                                  |
 * 141|    my ($self) = @_;                                                              *    |                                                                                  |
 * 142|    my $future = $self->loop->new_future;                                         *    |                                                                                  |

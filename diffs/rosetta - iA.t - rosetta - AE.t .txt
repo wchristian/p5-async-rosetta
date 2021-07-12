@@ -148,7 +148,7 @@
 * 144|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 145|    _timer( after => 0.4, cb => $cb );                                            *
 |    |                                                                                  * 146|    return;                                                                       *
 |    |                                                                                  * 147|}                                                                                 *
-|    |                                                                                  * 148|\r\n                                                                              *
+|    |                                                                                  * 148|\n                                                                                *
 |    |                                                                                  * 149|sub _timer {                                                                      *
 |    |                                                                                  * 150|    my $cb = pop;                                                                 *
 |    |                                                                                  * 151|    my $w;                                                                        *

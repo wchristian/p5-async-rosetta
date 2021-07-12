@@ -42,7 +42,7 @@
 *  39|                $id,                                                              *  40|            $self->curry::delete_object(                                          *
 *  40|                sub {                                                             *  41|                $self->curry::log_to_db    #                                      *
 *  41|                    my ($name) = @_;                                              *  42|                  ( "success" => $self->curry::finalize($end_cb) ),               *
-*  42|\r\n                                                                              *  43|                $self->curry::log_to_db    #\r\n                                  *
+*  42|\n                                                                                *  43|                $self->curry::log_to_db    #\n                                    *
 *  43|                    $self->delete_object(                                         *  44|                  ( "failure" => $self->curry::finalize($end_cb) ),               *
 *  44|                        $name,                                                    *  45|            )                                                                     *
 *  45|                        sub {                                                     *  46|        )                                                                         *

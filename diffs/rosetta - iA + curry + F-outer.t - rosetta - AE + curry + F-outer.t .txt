@@ -132,7 +132,7 @@
 |    |                                                                                  * 128|    );                                                                            *
 |    |                                                                                  * 129|    return;                                                                       *
 |    |                                                                                  * 130|}                                                                                 *
-|    |                                                                                  * 131|\r\n                                                                              *
+|    |                                                                                  * 131|\n                                                                                *
 | 119|sub log_to_db_f {                                                                 | 132|sub log_to_db_f {                                                                 |
 | 120|    my ( $self, $msg ) = @_;                                                      | 133|    my ( $self, $msg ) = @_;                                                      |
 * 121|    my $future = $self->loop->new_future;                                         * 134|    my $future = AnyEvent::Future->new;                                           *

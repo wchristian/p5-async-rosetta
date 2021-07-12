@@ -45,7 +45,7 @@
 *  39|        $self->curry::log_to_db("success"),                                       *  40|                $id,                                                              *
 *  40|        $self->curry::log_to_db("failure"),                                       *  41|                sub {                                                             *
 *  41|      )                                        #                                  *  42|                    my ($name) = @_;                                              *
-*  42|      ->then( $self->curry::finalize );\r\n                                       *  43|\r\n                                                                              *
+*  42|      ->then( $self->curry::finalize );\n                                         *  43|\n                                                                                *
 |    |                                                                                  *  44|                    $self->delete_object(                                         *
 |    |                                                                                  *  45|                        $name,                                                    *
 |    |                                                                                  *  46|                        sub {                                                     *
@@ -151,7 +151,7 @@
 * 103|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 145|    _timer( after => 0.4, cb => $cb );                                            *
 |    |                                                                                  * 146|    return;                                                                       *
 |    |                                                                                  * 147|}                                                                                 *
-|    |                                                                                  * 148|\r\n                                                                              *
+|    |                                                                                  * 148|\n                                                                                *
 |    |                                                                                  * 149|sub _timer {                                                                      *
 |    |                                                                                  * 150|    my $cb = pop;                                                                 *
 |    |                                                                                  * 151|    my $w;                                                                        *
