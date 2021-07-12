@@ -36,13 +36,11 @@ async sub do {
     my ( $self, $id ) = @_;
     await $self->log_to_db("start");
     my $name = await $self->get_object_name($id);
-    my $res  = await $self->delete_object($name);
-    if ( $res eq "name 1" ) {
+    eval {
+        await $self->delete_object($name);
         await $self->log_to_db("success");
-    }
-    else {
-        await $self->log_to_db("failure");
-    }
+    };
+    await $self->log_to_db("failure") if $@;
     await $self->finalize;
     return;
 }
@@ -79,7 +77,14 @@ async sub finalize {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return $self->delay( done => $arg );
+    my $meth;
+    if ( $call eq "delete_object" and $arg eq "name 2" ) {
+        $meth = "fail";
+    }
+    else {
+        $meth = "done";
+    }
+    return $self->delay( $meth => $arg );
 }
 
 sub call_internal_api {
