@@ -19,11 +19,13 @@ sub run {
     my $w = AnyEvent->timer    #
       ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
+    $self->cv( AnyEvent->condvar );
     $self->do( 1, sub { $self->cv->send } );
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->cv->recv;
 
+    $self->cv( AnyEvent->condvar );
     $self->do( 2, sub { $self->cv->send } );
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->cv->recv;
 
     is $self->count, $_, "had $_ events tracked" for 42;
     done_testing;
@@ -132,7 +134,7 @@ sub call_internal_api {
     say "$call, $arg";
     $self->delay(
         sub {
-            $cb->($arg);
+            $cb->();
             return;
         }
     );

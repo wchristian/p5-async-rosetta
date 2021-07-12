@@ -20,11 +20,13 @@ sub run {
     my $w = AnyEvent->timer    #
       ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
-    $self->do(1);
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->cv( AnyEvent->condvar );
+    $self->do( 1, $self->cv->curry::send );
+    $self->cv->recv;
 
-    $self->do(2);
-    $self->cv( AnyEvent->condvar )->recv;
+    $self->cv( AnyEvent->condvar );
+    $self->do( 2, $self->cv->curry::send );
+    $self->cv->recv;
 
     is $self->count, $_, "had $_ events tracked" for 42;
     done_testing;
@@ -32,14 +34,16 @@ sub run {
 }
 
 sub do {
-    my ( $self, $id ) = @_;
+    my ( $self, $id, $end_cb ) = @_;
     $self->log_to_db(
         "start",
         $self->curry::get_object_name(
             $id,
             $self->curry::delete_object(
-                $self->curry::log_to_db( "success" => $self->curry::finalize ),
-                $self->curry::log_to_db( "failure" => $self->curry::finalize ),
+                $self->curry::log_to_db    #
+                  ( "success" => $self->curry::finalize($end_cb) ),
+                $self->curry::log_to_db    #
+                  ( "failure" => $self->curry::finalize($end_cb) ),
             )
         )
     );
@@ -71,12 +75,12 @@ sub delete_object {
 }
 
 sub finalize {
-    my ( $self, $msg ) = @_;
+    my ( $self, $end_cb ) = @_;
     $self->log_to_db(
         "done",
         sub {
             say "end";
-            $self->cv->send;
+            $end_cb->();
             $self->inc;
             return;
         }
@@ -108,7 +112,7 @@ sub call_internal_api {
     say "$call, $arg";
     $self->delay(
         sub {
-            $cb->($arg);
+            $cb->();
             return;
         }
     );

@@ -24,6 +24,7 @@ async sub run {
       ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;
 
     await $self->do(1);
+
     await $self->do(2);
 
     is $self->count, $_, "had $_ events tracked" for 42;
@@ -68,7 +69,7 @@ sub delete_object {
 }
 
 async sub finalize {
-    my ( $self, $msg ) = @_;
+    my ($self) = @_;
     await $self->log_to_db("done");
     say "end";
     $self->inc;
@@ -84,13 +85,13 @@ sub call_external_api {
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return $self->delay( done => $arg );
+    return $self->delay("done");
 }
 
 sub delay {
-    my ( $self, $meth, $arg ) = @_;
+    my ( $self, $meth, @args ) = @_;
     my $future = $self->loop->new_future;
     $meth = "curry::$meth";
-    $self->loop->watch_time( after => 0.4, code => $future->$meth($arg) );
+    $self->loop->watch_time( after => 0.4, code => $future->$meth(@args) );
     return $future;
 }

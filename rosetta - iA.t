@@ -20,10 +20,10 @@ sub run {
     $self->loop->add($_) for IO::Async::Timer::Periodic    #
       ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;
 
-    $self->do(1);
+    $self->do( 1, sub { $self->loop->stop } );
     $self->loop->run;
 
-    $self->do(2);
+    $self->do( 2, sub { $self->loop->stop } );
     $self->loop->run;
 
     is $self->count, $_, "had $_ events tracked" for 42;
@@ -32,7 +32,7 @@ sub run {
 }
 
 sub do {
-    my ( $self, $id ) = @_;
+    my ( $self, $id, $end_cb ) = @_;
     $self->log_to_db(
         "start",
         sub {
@@ -46,7 +46,7 @@ sub do {
                         sub {
                             $self->log_to_db(
                                 "success" => sub {
-                                    $self->finalize;
+                                    $self->finalize($end_cb);
                                     return;
                                 }
                             );
@@ -55,7 +55,7 @@ sub do {
                         sub {
                             $self->log_to_db(
                                 "failure" => sub {
-                                    $self->finalize;
+                                    $self->finalize($end_cb);
                                     return;
                                 }
                             );
@@ -96,12 +96,12 @@ sub delete_object {
 }
 
 sub finalize {
-    my ( $self, $msg ) = @_;
+    my ( $self, $end_cb ) = @_;
     $self->log_to_db(
         "done",
         sub {
             say "end";
-            $self->loop->stop;
+            $end_cb->();
             $self->inc;
             return;
         }
@@ -133,7 +133,7 @@ sub call_internal_api {
     say "$call, $arg";
     $self->delay(
         sub {
-            $cb->($arg);
+            $cb->();
             return;
         }
     );
