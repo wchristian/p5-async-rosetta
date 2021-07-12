@@ -96,7 +96,7 @@ sub call_internal_api {
 sub delay {
     my ( $self, $meth, @args ) = @_;
     my $future = $self->loop->new_future;
-    $meth = "curry::$meth";
-    $self->loop->watch_time( after => 0.4, code => $future->$meth(@args) );
+    my $cb     = sub { $future->$meth(@args) };
+    $self->loop->watch_time( after => 0.4, code => $cb );
     return $future;
 }

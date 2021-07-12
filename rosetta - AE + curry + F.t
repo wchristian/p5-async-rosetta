@@ -95,8 +95,8 @@ sub call_internal_api {
 sub delay {
     my ( $self, $meth, @args ) = @_;
     my $future = AnyEvent::Future->new;
-    $meth = "curry::$meth";
-    _timer( after => 0.4, cb => $future->$meth(@args) );
+    my $cb     = sub { $future->$meth(@args) };
+    _timer( after => 0.4, cb => $cb );
     return $future;
 }
 
