@@ -10,7 +10,6 @@ BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
 use AnyEvent::Future;
 
 has count => is => rw => default => 0;
-has cv    => is => "rw";
 
 __PACKAGE__->new->run;
 

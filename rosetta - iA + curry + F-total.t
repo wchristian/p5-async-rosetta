@@ -79,26 +79,28 @@ sub finalize {
 sub call_external_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    my $meth;
+    my $future = $self->loop->new_future;
+    my $cb;
     if ( $call eq "delete_object" and $arg eq "name 2" ) {
-        $meth = "fail";
+        $cb = $future->curry::fail($arg);
     }
     else {
-        $meth = "done";
+        $cb = $future->curry::done($arg);
     }
-    return $self->delay( $meth => $arg );
+    $self->delay($cb);
+    return $future;
 }
 
 sub call_internal_api {
     my ( $self, $call, $arg ) = @_;
     say "$call, $arg";
-    return $self->delay("done");
+    my $future = $self->loop->new_future;
+    $self->delay( $future->curry::done );
+    return $future;
 }
 
 sub delay {
-    my ( $self, $meth, @args ) = @_;
-    my $future = $self->loop->new_future;
-    my $cb     = sub { $future->$meth(@args) };
+    my ( $self, $cb ) = @_;
     $self->loop->watch_time( after => 0.4, code => $cb );
-    return $future;
+    return;
 }

@@ -92,39 +92,38 @@
 |  89|sub call_external_api {                                                           |  78|sub call_external_api {                                                           |
 *  90|    my ( $self, $call, $arg, $cb_succ, $cb_fail ) = @_;                           *  79|    my ( $self, $call, $arg ) = @_;                                               *
 |  91|    say "$call, $arg";                                                            |  80|    say "$call, $arg";                                                            |
-*  92|    my $cb;                                                                       *  81|    my $meth;                                                                     *
-|  93|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |  82|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |
-*  94|        $cb = $cb_fail;                                                           *  83|        $meth = "fail";                                                           *
-|  95|    }                                                                             |  84|    }                                                                             |
-|  96|    else {                                                                        |  85|    else {                                                                        |
-*  97|        $cb = $cb_succ;                                                           *  86|        $meth = "done";                                                           *
-|  98|    }                                                                             |  87|    }                                                                             |
-*  99|    $self->delay(                                                                 *  88|    return $self->delay( $meth => $arg );                                         *
-* 100|        sub {                                                                     *    |                                                                                  |
+|    |                                                                                  *  81|    my $future = $self->loop->new_future;                                         *
+|  92|    my $cb;                                                                       |  82|    my $cb;                                                                       |
+|  93|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |  83|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |
+*  94|        $cb = $cb_fail;                                                           *  84|        $cb = $future->curry::fail($arg);                                         *
+|  95|    }                                                                             |  85|    }                                                                             |
+|  96|    else {                                                                        |  86|    else {                                                                        |
+*  97|        $cb = $cb_succ;                                                           *  87|        $cb = $future->curry::done($arg);                                         *
+|  98|    }                                                                             |  88|    }                                                                             |
+*  99|    $self->delay(                                                                 *  89|    $self->delay($cb);                                                            *
+* 100|        sub {                                                                     *  90|    return $future;                                                               *
 * 101|            $cb->($arg);                                                          *    |                                                                                  |
 * 102|            return;                                                               *    |                                                                                  |
 * 103|        }                                                                         *    |                                                                                  |
 * 104|    );                                                                            *    |                                                                                  |
 * 105|    return;                                                                       *    |                                                                                  |
-| 106|}                                                                                 |  89|}                                                                                 |
-| 107|                                                                                  |  90|                                                                                  |
-| 108|sub call_internal_api {                                                           |  91|sub call_internal_api {                                                           |
-* 109|    my ( $self, $call, $arg, $cb ) = @_;                                          *  92|    my ( $self, $call, $arg ) = @_;                                               *
-| 110|    say "$call, $arg";                                                            |  93|    say "$call, $arg";                                                            |
-* 111|    $self->delay(                                                                 *  94|    return $self->delay("done");                                                  *
-* 112|        sub {                                                                     *    |                                                                                  |
-* 113|            $cb->();                                                              *    |                                                                                  |
+| 106|}                                                                                 |  91|}                                                                                 |
+| 107|                                                                                  |  92|                                                                                  |
+| 108|sub call_internal_api {                                                           |  93|sub call_internal_api {                                                           |
+* 109|    my ( $self, $call, $arg, $cb ) = @_;                                          *  94|    my ( $self, $call, $arg ) = @_;                                               *
+| 110|    say "$call, $arg";                                                            |  95|    say "$call, $arg";                                                            |
+* 111|    $self->delay(                                                                 *  96|    my $future = $self->loop->new_future;                                         *
+* 112|        sub {                                                                     *  97|    $self->delay( $future->curry::done );                                         *
+* 113|            $cb->();                                                              *  98|    return $future;                                                               *
 * 114|            return;                                                               *    |                                                                                  |
 * 115|        }                                                                         *    |                                                                                  |
 * 116|    );                                                                            *    |                                                                                  |
 * 117|    return;                                                                       *    |                                                                                  |
-| 118|}                                                                                 |  95|}                                                                                 |
-| 119|                                                                                  |  96|                                                                                  |
-| 120|sub delay {                                                                       |  97|sub delay {                                                                       |
-* 121|    my ( $self, $cb ) = @_;                                                       *  98|    my ( $self, $meth, @args ) = @_;                                              *
-|    |                                                                                  *  99|    my $future = $self->loop->new_future;                                         *
-|    |                                                                                  * 100|    my $cb     = sub { $future->$meth(@args) };                                   *
-| 122|    $self->loop->watch_time( after => 0.4, code => $cb );                         | 101|    $self->loop->watch_time( after => 0.4, code => $cb );                         |
-* 123|    return;                                                                       * 102|    return $future;                                                               *
-| 124|}                                                                                 | 103|}                                                                                 |
+| 118|}                                                                                 |  99|}                                                                                 |
+| 119|                                                                                  | 100|                                                                                  |
+| 120|sub delay {                                                                       | 101|sub delay {                                                                       |
+| 121|    my ( $self, $cb ) = @_;                                                       | 102|    my ( $self, $cb ) = @_;                                                       |
+| 122|    $self->loop->watch_time( after => 0.4, code => $cb );                         | 103|    $self->loop->watch_time( after => 0.4, code => $cb );                         |
+| 123|    return;                                                                       | 104|    return;                                                                       |
+| 124|}                                                                                 | 105|}                                                                                 |
 +----+----------------------------------------------------------------------------------+----+----------------------------------------------------------------------------------+
