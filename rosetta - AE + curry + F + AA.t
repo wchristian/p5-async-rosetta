@@ -89,10 +89,10 @@ sub call_internal_api {
 
 sub delay {
     my ( $self, $meth, @args ) = @_;
-    my $f = AnyEvent::Future->new;
+    my $future = AnyEvent::Future->new;
     $meth = "curry::$meth";
-    _timer( after => 0.4, cb => $f->$meth(@args) );
-    return $f;
+    _timer( after => 0.4, cb => $future->$meth(@args) );
+    return $future;
 }
 
 sub _timer {
