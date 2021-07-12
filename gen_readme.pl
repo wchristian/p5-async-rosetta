@@ -9,7 +9,7 @@ sub run {
     io->dir("diffs")->mkdir;
 
     my $readme_text = io("README.md")->all;
-    $readme_text =~ s/(?<=# Comparison Matrix).*//s;
+    $readme_text =~ s/(?<=# Comparison Matrices).*//s;
 
     my @base_combos = ( [] => [qw( curry )] => [qw( curry F-outer )] =>
           [qw( curry F-total )] => [qw( curry F-total AA)] );
@@ -19,9 +19,9 @@ sub run {
     io("README.md")->print($_)
       for join "\n\n",
       $readme_text,
-      make_table( 1, \@ia_combos, \@ia_combos ),
-      make_table( 1, \@ae_combos, \@ae_combos ),
-      make_table( 0, \@ia_combos, \@ae_combos );
+      make_table( iA => iA => \@ia_combos, \@ia_combos ),
+      make_table( AE => AE => \@ae_combos, \@ae_combos ),
+      make_table( iA => AE => \@ia_combos, \@ae_combos );
 
     return;
 }
@@ -29,12 +29,18 @@ sub run {
 sub sep_line { "| " . join( " | ", ("---"), (":---:") x (@_) ) . " |" }
 
 sub make_table {
-    my ( $same_engine, $from, $to ) = @_;
+    my ( $from_e, $to_e, $from, $to ) = @_;
+
+    my $same_engine = $to_e eq $from_e;
 
     $to   = [ $to->@[ 1 .. $#{$to} ] ]         if $same_engine;
     $from = [ $from->@[ 0 .. $#{$from} - 1 ] ] if $same_engine;
 
-    my @table_lines;
+    my @table_lines = (
+        "## " .    #
+          ( $same_engine ? "$from_e Upgrades" : "Comparison $from_e to $to_e" ),
+        "",
+    );
 
     for my $line ( 0 .. 3 ) {
         my @heads =    #

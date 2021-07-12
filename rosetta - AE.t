@@ -34,6 +34,10 @@ sub run {
 
 sub do {
     my ( $self, $id, $end_cb ) = @_;
+    my $new_end_cb = sub {
+        $self->finalize($end_cb);
+        return;
+    };
     $self->log_to_db(
         "start",
         sub {
@@ -45,21 +49,11 @@ sub do {
                     $self->delete_object(
                         $name,
                         sub {
-                            $self->log_to_db(
-                                "success" => sub {
-                                    $self->finalize($end_cb);
-                                    return;
-                                }
-                            );
+                            $self->log_to_db( "success" => $new_end_cb );
                             return;
                         },
                         sub {
-                            $self->log_to_db(
-                                "failure" => sub {
-                                    $self->finalize($end_cb);
-                                    return;
-                                }
-                            );
+                            $self->log_to_db( "failure" => $new_end_cb );
                             return;
                         },
                     );

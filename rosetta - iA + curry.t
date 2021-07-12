@@ -34,17 +34,16 @@ sub run {
 
 sub do {
     my ( $self, $id, $end_cb ) = @_;
+    $end_cb = $self->curry::finalize($end_cb);
     $self->log_to_db(
         "start",
         $self->curry::get_object_name(
             $id,
             $self->curry::delete_object(
-                $self->curry::log_to_db    #
-                  ( "success" => $self->curry::finalize($end_cb) ),
-                $self->curry::log_to_db    #
-                  ( "failure" => $self->curry::finalize($end_cb) ),
-            )
-        )
+                $self->curry::log_to_db( "success" => $end_cb ),
+                $self->curry::log_to_db( "failure" => $end_cb ),
+            ),
+        ),
     );
     return;
 }

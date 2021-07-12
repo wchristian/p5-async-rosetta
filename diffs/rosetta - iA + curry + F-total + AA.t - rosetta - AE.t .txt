@@ -39,130 +39,126 @@
 |  33|                                                                                  |  33|                                                                                  |
 *  34|async sub do {                                                                    *  34|sub do {                                                                          *
 *  35|    my ( $self, $id ) = @_;                                                       *  35|    my ( $self, $id, $end_cb ) = @_;                                              *
-*  36|    await $self->log_to_db("start");                                              *  36|    $self->log_to_db(                                                             *
-*  37|    my $name = await $self->get_object_name($id);                                 *  37|        "start",                                                                  *
-*  38|    eval {                                                                        *  38|        sub {                                                                     *
-*  39|        await $self->delete_object($name);                                        *  39|            $self->get_object_name(                                               *
-*  40|        await $self->log_to_db("success");                                        *  40|                $id,                                                              *
-*  41|    };                                                                            *  41|                sub {                                                             *
-*  42|    await $self->log_to_db("failure") if $@;                                      *  42|                    my ($name) = @_;                                              *
-*  43|    await $self->finalize;\n                                                      *  43|\n                                                                                *
-|    |                                                                                  *  44|                    $self->delete_object(                                         *
-|    |                                                                                  *  45|                        $name,                                                    *
-|    |                                                                                  *  46|                        sub {                                                     *
-|    |                                                                                  *  47|                            $self->log_to_db(                                     *
-|    |                                                                                  *  48|                                "success" => sub {                                *
-|    |                                                                                  *  49|                                    $self->finalize($end_cb);                     *
-|    |                                                                                  *  50|                                    return;                                       *
-|    |                                                                                  *  51|                                }                                                 *
-|    |                                                                                  *  52|                            );                                                    *
-|    |                                                                                  *  53|                            return;                                               *
-|    |                                                                                  *  54|                        },                                                        *
-|    |                                                                                  *  55|                        sub {                                                     *
-|    |                                                                                  *  56|                            $self->log_to_db(                                     *
-|    |                                                                                  *  57|                                "failure" => sub {                                *
-|    |                                                                                  *  58|                                    $self->finalize($end_cb);                     *
-|    |                                                                                  *  59|                                    return;                                       *
-|    |                                                                                  *  60|                                }                                                 *
-|    |                                                                                  *  61|                            );                                                    *
-|    |                                                                                  *  62|                            return;                                               *
-|    |                                                                                  *  63|                        },                                                        *
-|    |                                                                                  *  64|                    );                                                            *
-|    |                                                                                  *  65|                    return;                                                       *
-|    |                                                                                  *  66|                }                                                                 *
-|    |                                                                                  *  67|            );                                                                    *
-|    |                                                                                  *  68|            return;                                                               *
-|    |                                                                                  *  69|        }                                                                         *
-|    |                                                                                  *  70|    );                                                                            *
-|  44|    return;                                                                       |  71|    return;                                                                       |
-|  45|}                                                                                 |  72|}                                                                                 |
-|  46|                                                                                  |  73|                                                                                  |
-|  47|sub inc {                                                                         |  74|sub inc {                                                                         |
-|  48|    my ($self) = @_;                                                              |  75|    my ($self) = @_;                                                              |
-|  49|    $self->count( $self->count + 1 );                                             |  76|    $self->count( $self->count + 1 );                                             |
-|  50|    return;                                                                       |  77|    return;                                                                       |
-|  51|}                                                                                 |  78|}                                                                                 |
-|  52|                                                                                  |  79|                                                                                  |
-|  53|sub log_to_db {                                                                   |  80|sub log_to_db {                                                                   |
-*  54|    my ( $self, $msg ) = @_;                                                      *  81|    my ( $self, $msg, $cb ) = @_;                                                 *
-*  55|    return $self->call_internal_api( "log_to_db", $msg );                         *  82|    $self->call_internal_api( "log_to_db", $msg, $cb );                           *
+*  36|    await $self->log_to_db("start");                                              *  36|    my $new_end_cb = sub {                                                        *
+*  37|    my $name = await $self->get_object_name($id);                                 *  37|        $self->finalize($end_cb);                                                 *
+*  38|    eval {                                                                        *  38|        return;                                                                   *
+*  39|        await $self->delete_object($name);                                        *    |                                                                                  |
+*  40|        await $self->log_to_db("success");                                        *    |                                                                                  |
+|  41|    };                                                                            |  39|    };                                                                            |
+*  42|    await $self->log_to_db("failure") if $@;                                      *  40|    $self->log_to_db(                                                             *
+*  43|    await $self->finalize;                                                        *  41|        "start",                                                                  *
+|    |                                                                                  *  42|        sub {                                                                     *
+|    |                                                                                  *  43|            $self->get_object_name(                                               *
+|    |                                                                                  *  44|                $id,                                                              *
+|    |                                                                                  *  45|                sub {                                                             *
+|    |                                                                                  *  46|                    my ($name) = @_;                                              *
+|    |                                                                                  *  47|\n                                                                                *
+|    |                                                                                  *  48|                    $self->delete_object(                                         *
+|    |                                                                                  *  49|                        $name,                                                    *
+|    |                                                                                  *  50|                        sub {                                                     *
+|    |                                                                                  *  51|                            $self->log_to_db( "success" => $new_end_cb );         *
+|    |                                                                                  *  52|                            return;                                               *
+|    |                                                                                  *  53|                        },                                                        *
+|    |                                                                                  *  54|                        sub {                                                     *
+|    |                                                                                  *  55|                            $self->log_to_db( "failure" => $new_end_cb );         *
+|    |                                                                                  *  56|                            return;                                               *
+|    |                                                                                  *  57|                        },                                                        *
+|    |                                                                                  *  58|                    );                                                            *
+|    |                                                                                  *  59|                    return;                                                       *
+|    |                                                                                  *  60|                }                                                                 *
+|    |                                                                                  *  61|            );                                                                    *
+|    |                                                                                  *  62|            return;                                                               *
+|    |                                                                                  *  63|        }                                                                         *
+|    |                                                                                  *  64|    );                                                                            *
+|  44|    return;                                                                       |  65|    return;                                                                       |
+|  45|}                                                                                 |  66|}                                                                                 |
+|  46|                                                                                  |  67|                                                                                  |
+|  47|sub inc {                                                                         |  68|sub inc {                                                                         |
+|  48|    my ($self) = @_;                                                              |  69|    my ($self) = @_;                                                              |
+|  49|    $self->count( $self->count + 1 );                                             |  70|    $self->count( $self->count + 1 );                                             |
+|  50|    return;                                                                       |  71|    return;                                                                       |
+|  51|}                                                                                 |  72|}                                                                                 |
+|  52|                                                                                  |  73|                                                                                  |
+|  53|sub log_to_db {                                                                   |  74|sub log_to_db {                                                                   |
+*  54|    my ( $self, $msg ) = @_;                                                      *  75|    my ( $self, $msg, $cb ) = @_;                                                 *
+*  55|    return $self->call_internal_api( "log_to_db", $msg );                         *  76|    $self->call_internal_api( "log_to_db", $msg, $cb );                           *
+|    |                                                                                  *  77|    return;                                                                       *
+|  56|}                                                                                 |  78|}                                                                                 |
+|  57|                                                                                  |  79|                                                                                  |
+|  58|sub get_object_name {                                                             |  80|sub get_object_name {                                                             |
+*  59|    my ( $self, $id ) = @_;                                                       *  81|    my ( $self, $id, $cb ) = @_;                                                  *
+*  60|    return $self->call_external_api( "get_object_name", "name $id" );             *  82|    $self->call_external_api( "get_object_name", "name $id", $cb );               *
 |    |                                                                                  *  83|    return;                                                                       *
-|  56|}                                                                                 |  84|}                                                                                 |
-|  57|                                                                                  |  85|                                                                                  |
-|  58|sub get_object_name {                                                             |  86|sub get_object_name {                                                             |
-*  59|    my ( $self, $id ) = @_;                                                       *  87|    my ( $self, $id, $cb ) = @_;                                                  *
-*  60|    return $self->call_external_api( "get_object_name", "name $id" );             *  88|    $self->call_external_api( "get_object_name", "name $id", $cb );               *
+|  61|}                                                                                 |  84|}                                                                                 |
+|  62|                                                                                  |  85|                                                                                  |
+|  63|sub delete_object {                                                               |  86|sub delete_object {                                                               |
+*  64|    my ( $self, $name ) = @_;                                                     *  87|    my ( $self, $name, $cb_succ, $cb_fail ) = @_;                                 *
+*  65|    return $self->call_external_api( "delete_object", $name );                    *  88|    $self->call_external_api( "delete_object", $name, $cb_succ, $cb_fail );       *
 |    |                                                                                  *  89|    return;                                                                       *
-|  61|}                                                                                 |  90|}                                                                                 |
-|  62|                                                                                  |  91|                                                                                  |
-|  63|sub delete_object {                                                               |  92|sub delete_object {                                                               |
-*  64|    my ( $self, $name ) = @_;                                                     *  93|    my ( $self, $name, $cb_succ, $cb_fail ) = @_;                                 *
-*  65|    return $self->call_external_api( "delete_object", $name );                    *  94|    $self->call_external_api( "delete_object", $name, $cb_succ, $cb_fail );       *
-|    |                                                                                  *  95|    return;                                                                       *
-|  66|}                                                                                 |  96|}                                                                                 |
-|  67|                                                                                  |  97|                                                                                  |
-*  68|async sub finalize {                                                              *  98|sub finalize {                                                                    *
-*  69|    my ($self) = @_;                                                              *  99|    my ( $self, $end_cb ) = @_;                                                   *
-*  70|    await $self->log_to_db("done");                                               * 100|    $self->log_to_db(                                                             *
-*  71|    say "end";                                                                    * 101|        "done",                                                                   *
-*  72|    $self->inc;                                                                   * 102|        sub {                                                                     *
-|    |                                                                                  * 103|            say "end";                                                            *
-|    |                                                                                  * 104|            $end_cb->();                                                          *
-|    |                                                                                  * 105|            $self->inc;                                                           *
-|    |                                                                                  * 106|            return;                                                               *
-|    |                                                                                  * 107|        }                                                                         *
-|    |                                                                                  * 108|    );                                                                            *
-|  73|    return;                                                                       | 109|    return;                                                                       |
-|  74|}                                                                                 | 110|}                                                                                 |
-|  75|                                                                                  | 111|                                                                                  |
-|  76|sub call_external_api {                                                           | 112|sub call_external_api {                                                           |
-*  77|    my ( $self, $call, $arg ) = @_;                                               * 113|    my ( $self, $call, $arg, $cb_succ, $cb_fail ) = @_;                           *
-|  78|    say "$call, $arg";                                                            | 114|    say "$call, $arg";                                                            |
+|  66|}                                                                                 |  90|}                                                                                 |
+|  67|                                                                                  |  91|                                                                                  |
+*  68|async sub finalize {                                                              *  92|sub finalize {                                                                    *
+*  69|    my ($self) = @_;                                                              *  93|    my ( $self, $end_cb ) = @_;                                                   *
+*  70|    await $self->log_to_db("done");                                               *  94|    $self->log_to_db(                                                             *
+*  71|    say "end";                                                                    *  95|        "done",                                                                   *
+*  72|    $self->inc;                                                                   *  96|        sub {                                                                     *
+|    |                                                                                  *  97|            say "end";                                                            *
+|    |                                                                                  *  98|            $end_cb->();                                                          *
+|    |                                                                                  *  99|            $self->inc;                                                           *
+|    |                                                                                  * 100|            return;                                                               *
+|    |                                                                                  * 101|        }                                                                         *
+|    |                                                                                  * 102|    );                                                                            *
+|  73|    return;                                                                       | 103|    return;                                                                       |
+|  74|}                                                                                 | 104|}                                                                                 |
+|  75|                                                                                  | 105|                                                                                  |
+|  76|sub call_external_api {                                                           | 106|sub call_external_api {                                                           |
+*  77|    my ( $self, $call, $arg ) = @_;                                               * 107|    my ( $self, $call, $arg, $cb_succ, $cb_fail ) = @_;                           *
+|  78|    say "$call, $arg";                                                            | 108|    say "$call, $arg";                                                            |
 *  79|    my $future = $self->loop->new_future;                                         *    |                                                                                  |
-|  80|    my $cb;                                                                       | 115|    my $cb;                                                                       |
-|  81|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        | 116|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |
-*  82|        $cb = $future->curry::fail($arg);                                         * 117|        $cb = $cb_fail;                                                           *
-|  83|    }                                                                             | 118|    }                                                                             |
-|  84|    else {                                                                        | 119|    else {                                                                        |
-*  85|        $cb = $future->curry::done($arg);                                         * 120|        $cb = $cb_succ;                                                           *
-|  86|    }                                                                             | 121|    }                                                                             |
-*  87|    $self->delay($cb);                                                            * 122|    $self->delay(                                                                 *
-*  88|    return $future;                                                               * 123|        sub {                                                                     *
-|    |                                                                                  * 124|            $cb->($arg);                                                          *
-|    |                                                                                  * 125|            return;                                                               *
-|    |                                                                                  * 126|        }                                                                         *
-|    |                                                                                  * 127|    );                                                                            *
-|    |                                                                                  * 128|    return;                                                                       *
-|  89|}                                                                                 | 129|}                                                                                 |
-|  90|                                                                                  | 130|                                                                                  |
-|  91|sub call_internal_api {                                                           | 131|sub call_internal_api {                                                           |
-*  92|    my ( $self, $call, $arg ) = @_;                                               * 132|    my ( $self, $call, $arg, $cb ) = @_;                                          *
-|  93|    say "$call, $arg";                                                            | 133|    say "$call, $arg";                                                            |
-*  94|    my $future = $self->loop->new_future;                                         * 134|    $self->delay(                                                                 *
-*  95|    $self->delay( $future->curry::done );                                         * 135|        sub {                                                                     *
-*  96|    return $future;                                                               * 136|            $cb->();                                                              *
-|    |                                                                                  * 137|            return;                                                               *
-|    |                                                                                  * 138|        }                                                                         *
-|    |                                                                                  * 139|    );                                                                            *
+|  80|    my $cb;                                                                       | 109|    my $cb;                                                                       |
+|  81|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        | 110|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |
+*  82|        $cb = $future->curry::fail($arg);                                         * 111|        $cb = $cb_fail;                                                           *
+|  83|    }                                                                             | 112|    }                                                                             |
+|  84|    else {                                                                        | 113|    else {                                                                        |
+*  85|        $cb = $future->curry::done($arg);                                         * 114|        $cb = $cb_succ;                                                           *
+|  86|    }                                                                             | 115|    }                                                                             |
+*  87|    $self->delay($cb);                                                            * 116|    $self->delay(                                                                 *
+*  88|    return $future;                                                               * 117|        sub {                                                                     *
+|    |                                                                                  * 118|            $cb->($arg);                                                          *
+|    |                                                                                  * 119|            return;                                                               *
+|    |                                                                                  * 120|        }                                                                         *
+|    |                                                                                  * 121|    );                                                                            *
+|    |                                                                                  * 122|    return;                                                                       *
+|  89|}                                                                                 | 123|}                                                                                 |
+|  90|                                                                                  | 124|                                                                                  |
+|  91|sub call_internal_api {                                                           | 125|sub call_internal_api {                                                           |
+*  92|    my ( $self, $call, $arg ) = @_;                                               * 126|    my ( $self, $call, $arg, $cb ) = @_;                                          *
+|  93|    say "$call, $arg";                                                            | 127|    say "$call, $arg";                                                            |
+*  94|    my $future = $self->loop->new_future;                                         * 128|    $self->delay(                                                                 *
+*  95|    $self->delay( $future->curry::done );                                         * 129|        sub {                                                                     *
+*  96|    return $future;                                                               * 130|            $cb->();                                                              *
+|    |                                                                                  * 131|            return;                                                               *
+|    |                                                                                  * 132|        }                                                                         *
+|    |                                                                                  * 133|    );                                                                            *
+|    |                                                                                  * 134|    return;                                                                       *
+|  97|}                                                                                 | 135|}                                                                                 |
+|  98|                                                                                  | 136|                                                                                  |
+|  99|sub delay {                                                                       | 137|sub delay {                                                                       |
+| 100|    my ( $self, $cb ) = @_;                                                       | 138|    my ( $self, $cb ) = @_;                                                       |
+* 101|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 139|    _timer( after => 0.4, cb => $cb );                                            *
 |    |                                                                                  * 140|    return;                                                                       *
-|  97|}                                                                                 | 141|}                                                                                 |
-|  98|                                                                                  | 142|                                                                                  |
-|  99|sub delay {                                                                       | 143|sub delay {                                                                       |
-| 100|    my ( $self, $cb ) = @_;                                                       | 144|    my ( $self, $cb ) = @_;                                                       |
-* 101|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 145|    _timer( after => 0.4, cb => $cb );                                            *
-|    |                                                                                  * 146|    return;                                                                       *
-|    |                                                                                  * 147|}                                                                                 *
-|    |                                                                                  * 148|\n                                                                                *
-|    |                                                                                  * 149|sub _timer {                                                                      *
-|    |                                                                                  * 150|    my $cb = pop;                                                                 *
-|    |                                                                                  * 151|    my $w;                                                                        *
-|    |                                                                                  * 152|    $w = AnyEvent->timer(                                                         *
-|    |                                                                                  * 153|        @_ => sub {                                                               *
-|    |                                                                                  * 154|            undef $w;                                                             *
-|    |                                                                                  * 155|            $cb->();                                                              *
-|    |                                                                                  * 156|            return;                                                               *
-|    |                                                                                  * 157|        }                                                                         *
-|    |                                                                                  * 158|    );                                                                            *
-| 102|    return;                                                                       | 159|    return;                                                                       |
-| 103|}                                                                                 | 160|}                                                                                 |
+|    |                                                                                  * 141|}                                                                                 *
+|    |                                                                                  * 142|\n                                                                                *
+|    |                                                                                  * 143|sub _timer {                                                                      *
+|    |                                                                                  * 144|    my $cb = pop;                                                                 *
+|    |                                                                                  * 145|    my $w;                                                                        *
+|    |                                                                                  * 146|    $w = AnyEvent->timer(                                                         *
+|    |                                                                                  * 147|        @_ => sub {                                                               *
+|    |                                                                                  * 148|            undef $w;                                                             *
+|    |                                                                                  * 149|            $cb->();                                                              *
+|    |                                                                                  * 150|            return;                                                               *
+|    |                                                                                  * 151|        }                                                                         *
+|    |                                                                                  * 152|    );                                                                            *
+| 102|    return;                                                                       | 153|    return;                                                                       |
+| 103|}                                                                                 | 154|}                                                                                 |
 +----+----------------------------------------------------------------------------------+----+----------------------------------------------------------------------------------+
