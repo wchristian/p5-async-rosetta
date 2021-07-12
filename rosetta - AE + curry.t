@@ -121,9 +121,15 @@ sub call_internal_api {
 
 sub delay {
     my ( $self, $cb ) = @_;
+    _timer( after => 0.4, cb => $cb );
+    return;
+}
+
+sub _timer {
+    my $cb = pop;
     my $w;
     $w = AnyEvent->timer(
-        after => 0.4 => cb => sub {
+        @_ => sub {
             undef $w;
             $cb->();
             return;
