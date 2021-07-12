@@ -4,6 +4,7 @@ use strictures;
 use Moo;
 
 use Test::More;
+BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
 use IO::Async::Timer::Periodic;
 use IO::Async::Loop;
 use curry;
@@ -67,7 +68,7 @@ sub finalize {
         sub {
             say "end";
             $self->inc;
-            return;
+            return Future->done;
         }
       );
 }

@@ -6,6 +6,7 @@ use Moo;
 use Test::More;
 use AnyEvent;
 use curry;
+BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
 use AnyEvent::Future;
 
 has count => is => rw => default => 0;
@@ -66,7 +67,7 @@ sub finalize {
         sub {
             say "end";
             $self->inc;
-            return;
+            return Future->done;
         }
       );
 }

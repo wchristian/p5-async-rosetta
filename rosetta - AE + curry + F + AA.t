@@ -6,6 +6,7 @@ use Moo;
 use Test::More;
 use AnyEvent;
 use curry;
+BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
 use AnyEvent::Future;
 use Future::AsyncAwait;
 
