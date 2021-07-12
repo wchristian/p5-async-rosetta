@@ -4,13 +4,12 @@ use strictures;
 use Moo;
 
 use Test::More;
-BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
-use IO::Async::Timer::Periodic;
-use IO::Async::Loop;
+use AnyEvent;
 use curry;
+BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }
+use AnyEvent::Future;
 
 has count => is => rw => default => 0;
-has loop  => is => ro => default => IO::Async::Loop->curry::new;
 
 __PACKAGE__->new->run;
 
@@ -19,8 +18,8 @@ sub run {
 
     $|++;
 
-    $self->loop->add($_) for IO::Async::Timer::Periodic    #
-      ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;
+    my $w = AnyEvent->timer    #
+      ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
     $self->do(1)->get;
 
@@ -36,8 +35,10 @@ sub do {
     return $self->log_to_db("start")    #
       ->then( $self->curry::get_object_name($id) )
       ->then( $self->curry::delete_object )    #
-      ->then                                   #
-      ( $self->curry::log_to_db("success"), $self->curry::log_to_db("failure") )
+      ->then(
+        $self->curry::log_to_db("success"),
+        $self->curry::log_to_db("failure"),
+      )                                        #
       ->then( $self->curry::finalize );
 }
 
@@ -95,8 +96,21 @@ sub call_internal_api {
 
 sub delay {
     my ( $self, $meth, @args ) = @_;
-    my $future = $self->loop->new_future;
+    my $future = AnyEvent::Future->new;
     my $cb     = sub { $future->$meth(@args) };
-    $self->loop->watch_time( after => 0.4, code => $cb );
+    _timer( after => 0.4, cb => $cb );
     return $future;
+}
+
+sub _timer {
+    my $cb = pop;
+    my $w;
+    $w = AnyEvent->timer(
+        @_ => sub {
+            undef $w;
+            $cb->();
+            return;
+        }
+    );
+    return;
 }
