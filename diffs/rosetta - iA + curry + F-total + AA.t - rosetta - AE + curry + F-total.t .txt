@@ -1,0 +1,122 @@
++----+----------------------------------------------------------------------------------+----+----------------------------------------------------------------------------------+
+*   0|use v5.14;                                                                        *   0|use 5.010;                                                                        *
+|   1|use strictures;                                                                   |   1|use strictures;                                                                   |
+|   2|                                                                                  |   2|                                                                                  |
+|   3|use Moo;                                                                          |   3|use Moo;                                                                          |
+|   4|                                                                                  |   4|                                                                                  |
+|   5|use Test::More;                                                                   |   5|use Test::More;                                                                   |
+*   6|BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }                                            *   6|use AnyEvent;                                                                     *
+*   7|use IO::Async::Timer::Periodic;                                                   *    |                                                                                  |
+*   8|use IO::Async::Loop;                                                              *    |                                                                                  |
+|   9|use curry;                                                                        |   7|use curry;                                                                        |
+*  10|use Future::AsyncAwait;                                                           *   8|BEGIN { $ENV{PERL_FUTURE_STRICT} = 1 }                                            *
+|    |                                                                                  *   9|use AnyEvent::Future;                                                             *
+|  11|                                                                                  |  10|                                                                                  |
+|  12|has count => is => rw => default => 0;                                            |  11|has count => is => rw => default => 0;                                            |
+*  13|has loop  => is => ro => default => IO::Async::Loop->curry::new;                  *    |                                                                                  |
+|  14|                                                                                  |  12|                                                                                  |
+*  15|await __PACKAGE__->new->run;                                                      *  13|__PACKAGE__->new->run;                                                            *
+|  16|                                                                                  |  14|                                                                                  |
+*  17|async sub run {                                                                   *  15|sub run {                                                                         *
+|  18|    my ($self) = @_;                                                              |  16|    my ($self) = @_;                                                              |
+|  19|                                                                                  |  17|                                                                                  |
+|  20|    $|++;                                                                         |  18|    $|++;                                                                         |
+|  21|                                                                                  |  19|                                                                                  |
+*  22|    $self->loop->add($_) for IO::Async::Timer::Periodic    #                      *  20|    my $w = AnyEvent->timer    #                                                  *
+*  23|      ->new( interval => 0.1, on_tick => sub { print "."; $self->inc } )->start;  *  21|      ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );  *
+|  24|                                                                                  |  22|                                                                                  |
+*  25|    await $self->do(1);                                                           *  23|    $self->do(1)->get;                                                            *
+|  26|                                                                                  |  24|                                                                                  |
+*  27|    await $self->do(2);                                                           *  25|    $self->do(2)->get;                                                            *
+|  28|                                                                                  |  26|                                                                                  |
+|  29|    is $self->count, $_, "had $_ events tracked" for 42;                          |  27|    is $self->count, $_, "had $_ events tracked" for 42;                          |
+|  30|    done_testing;                                                                 |  28|    done_testing;                                                                 |
+|  31|    return;                                                                       |  29|    return;                                                                       |
+|  32|}                                                                                 |  30|}                                                                                 |
+|  33|                                                                                  |  31|                                                                                  |
+*  34|async sub do {                                                                    *  32|sub do {                                                                          *
+|  35|    my ( $self, $id ) = @_;                                                       |  33|    my ( $self, $id ) = @_;                                                       |
+*  36|    await $self->log_to_db("start");                                              *  34|    return $self->log_to_db("start")    #                                         *
+*  37|    my $name = await $self->get_object_name($id);                                 *  35|      ->then( $self->curry::get_object_name($id) )                                *
+*  38|    eval {                                                                        *  36|      ->then( $self->curry::delete_object )    #                                  *
+*  39|        await $self->delete_object($name);                                        *  37|      ->then(                                                                     *
+*  40|        await $self->log_to_db("success");                                        *  38|        $self->curry::log_to_db("success"),                                       *
+*  41|    };                                                                            *  39|        $self->curry::log_to_db("failure"),                                       *
+*  42|    await $self->log_to_db("failure") if $@;                                      *  40|      )                                        #                                  *
+*  43|    await $self->finalize;                                                        *  41|      ->then( $self->curry::finalize );                                           *
+*  44|    return;                                                                       *    |                                                                                  |
+|  45|}                                                                                 |  42|}                                                                                 |
+|  46|                                                                                  |  43|                                                                                  |
+|  47|sub inc {                                                                         |  44|sub inc {                                                                         |
+|  48|    my ($self) = @_;                                                              |  45|    my ($self) = @_;                                                              |
+|  49|    $self->count( $self->count + 1 );                                             |  46|    $self->count( $self->count + 1 );                                             |
+|  50|    return;                                                                       |  47|    return;                                                                       |
+|  51|}                                                                                 |  48|}                                                                                 |
+|  52|                                                                                  |  49|                                                                                  |
+|  53|sub log_to_db {                                                                   |  50|sub log_to_db {                                                                   |
+|  54|    my ( $self, $msg ) = @_;                                                      |  51|    my ( $self, $msg ) = @_;                                                      |
+|  55|    return $self->call_internal_api( "log_to_db", $msg );                         |  52|    return $self->call_internal_api( "log_to_db", $msg );                         |
+|  56|}                                                                                 |  53|}                                                                                 |
+|  57|                                                                                  |  54|                                                                                  |
+|  58|sub get_object_name {                                                             |  55|sub get_object_name {                                                             |
+|  59|    my ( $self, $id ) = @_;                                                       |  56|    my ( $self, $id ) = @_;                                                       |
+|  60|    return $self->call_external_api( "get_object_name", "name $id" );             |  57|    return $self->call_external_api( "get_object_name", "name $id" );             |
+|  61|}                                                                                 |  58|}                                                                                 |
+|  62|                                                                                  |  59|                                                                                  |
+|  63|sub delete_object {                                                               |  60|sub delete_object {                                                               |
+|  64|    my ( $self, $name ) = @_;                                                     |  61|    my ( $self, $name ) = @_;                                                     |
+|  65|    return $self->call_external_api( "delete_object", $name );                    |  62|    return $self->call_external_api( "delete_object", $name );                    |
+|  66|}                                                                                 |  63|}                                                                                 |
+|  67|                                                                                  |  64|                                                                                  |
+*  68|async sub finalize {                                                              *  65|sub finalize {                                                                    *
+|  69|    my ($self) = @_;                                                              |  66|    my ($self) = @_;                                                              |
+*  70|    await $self->log_to_db("done");                                               *  67|    return $self->log_to_db("done")    #                                          *
+*  71|    say "end";                                                                    *  68|      ->then(                                                                     *
+*  72|    $self->inc;                                                                   *  69|        sub {                                                                     *
+*  73|    return;                                                                       *  70|            say "end";                                                            *
+|    |                                                                                  *  71|            $self->inc;                                                           *
+|    |                                                                                  *  72|            return Future->done;                                                  *
+|    |                                                                                  *  73|        }                                                                         *
+|    |                                                                                  *  74|      );                                                                          *
+|  74|}                                                                                 |  75|}                                                                                 |
+|  75|                                                                                  |  76|                                                                                  |
+|  76|sub call_external_api {                                                           |  77|sub call_external_api {                                                           |
+|  77|    my ( $self, $call, $arg ) = @_;                                               |  78|    my ( $self, $call, $arg ) = @_;                                               |
+|  78|    say "$call, $arg";                                                            |  79|    say "$call, $arg";                                                            |
+|  79|    my $meth;                                                                     |  80|    my $meth;                                                                     |
+|  80|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |  81|    if ( $call eq "delete_object" and $arg eq "name 2" ) {                        |
+|  81|        $meth = "fail";                                                           |  82|        $meth = "fail";                                                           |
+|  82|    }                                                                             |  83|    }                                                                             |
+|  83|    else {                                                                        |  84|    else {                                                                        |
+|  84|        $meth = "done";                                                           |  85|        $meth = "done";                                                           |
+|  85|    }                                                                             |  86|    }                                                                             |
+|  86|    return $self->delay( $meth => $arg );                                         |  87|    return $self->delay( $meth => $arg );                                         |
+|  87|}                                                                                 |  88|}                                                                                 |
+|  88|                                                                                  |  89|                                                                                  |
+|  89|sub call_internal_api {                                                           |  90|sub call_internal_api {                                                           |
+|  90|    my ( $self, $call, $arg ) = @_;                                               |  91|    my ( $self, $call, $arg ) = @_;                                               |
+|  91|    say "$call, $arg";                                                            |  92|    say "$call, $arg";                                                            |
+|  92|    return $self->delay("done");                                                  |  93|    return $self->delay("done");                                                  |
+|  93|}                                                                                 |  94|}                                                                                 |
+|  94|                                                                                  |  95|                                                                                  |
+|  95|sub delay {                                                                       |  96|sub delay {                                                                       |
+|  96|    my ( $self, $meth, @args ) = @_;                                              |  97|    my ( $self, $meth, @args ) = @_;                                              |
+*  97|    my $future = $self->loop->new_future;                                         *  98|    my $future = AnyEvent::Future->new;                                           *
+|  98|    my $cb     = sub { $future->$meth(@args) };                                   |  99|    my $cb     = sub { $future->$meth(@args) };                                   |
+*  99|    $self->loop->watch_time( after => 0.4, code => $cb );                         * 100|    _timer( after => 0.4, cb => $cb );                                            *
+| 100|    return $future;                                                               | 101|    return $future;                                                               |
+|    |                                                                                  * 102|}                                                                                 *
+|    |                                                                                  * 103|\r\n                                                                              *
+|    |                                                                                  * 104|sub _timer {                                                                      *
+|    |                                                                                  * 105|    my $cb = pop;                                                                 *
+|    |                                                                                  * 106|    my $w;                                                                        *
+|    |                                                                                  * 107|    $w = AnyEvent->timer(                                                         *
+|    |                                                                                  * 108|        @_ => sub {                                                               *
+|    |                                                                                  * 109|            undef $w;                                                             *
+|    |                                                                                  * 110|            $cb->();                                                              *
+|    |                                                                                  * 111|            return;                                                               *
+|    |                                                                                  * 112|        }                                                                         *
+|    |                                                                                  * 113|    );                                                                            *
+|    |                                                                                  * 114|    return;                                                                       *
+| 101|}                                                                                 | 115|}                                                                                 |
++----+----------------------------------------------------------------------------------+----+----------------------------------------------------------------------------------+
