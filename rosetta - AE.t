@@ -17,12 +17,12 @@ sub run {
     $|++;
 
     my $w = AnyEvent->timer    #
-      ( after => 0.08, interval => 0.1, cb => sub { print "."; $self->inc } );
+      ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
-    $self->do(1);
+    $self->do( 1, sub { $self->cv->send } );
     $self->cv( AnyEvent->condvar )->recv;
 
-    $self->do(2);
+    $self->do( 2, sub { $self->cv->send } );
     $self->cv( AnyEvent->condvar )->recv;
 
     is $self->count, $_, "had $_ events tracked" for 42;
@@ -31,7 +31,7 @@ sub run {
 }
 
 sub do {
-    my ( $self, $id ) = @_;
+    my ( $self, $id, $end_cb ) = @_;
     $self->log_to_db(
         "start",
         sub {
@@ -45,7 +45,7 @@ sub do {
                         sub {
                             $self->log_to_db(
                                 "success" => sub {
-                                    $self->finalize;
+                                    $self->finalize($end_cb);
                                     return;
                                 }
                             );
@@ -54,7 +54,7 @@ sub do {
                         sub {
                             $self->log_to_db(
                                 "failure" => sub {
-                                    $self->finalize;
+                                    $self->finalize($end_cb);
                                     return;
                                 }
                             );
@@ -95,12 +95,12 @@ sub delete_object {
 }
 
 sub finalize {
-    my ( $self, $msg ) = @_;
+    my ( $self, $end_cb ) = @_;
     $self->log_to_db(
         "done",
         sub {
             say "end";
-            $self->cv->send;
+            $end_cb->();
             $self->inc;
             return;
         }

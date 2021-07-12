@@ -19,7 +19,7 @@ async sub run {
     $|++;
 
     my $w = AnyEvent->timer    #
-      ( after => 0.08, interval => 0.1, cb => sub { print "."; $self->inc } );
+      ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
     await $self->do(1);
     await $self->do(2);

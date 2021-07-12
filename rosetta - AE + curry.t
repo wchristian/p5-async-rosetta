@@ -18,7 +18,7 @@ sub run {
     $|++;
 
     my $w = AnyEvent->timer    #
-      ( after => 0.08, interval => 0.1, cb => sub { print "."; $self->inc } );
+      ( after => 0.08, interval => 0.101, cb => sub { print "."; $self->inc } );
 
     $self->do(1);
     $self->cv( AnyEvent->condvar )->recv;
